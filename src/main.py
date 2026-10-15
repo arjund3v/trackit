@@ -7,10 +7,9 @@ import numpy as np
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-from helper import apply_deadzone, normalize_angle
+from src.utils.helper import apply_deadzone, normalize_angle
 
 from output.udp_output import OpenTrackUDP
-
 
 MODEL_PATH = "models/face_landmarker.task"
 
