@@ -9,12 +9,16 @@ from mediapipe.tasks.python import vision
 
 from helper import apply_deadzone, normalize_angle
 
+from output.udp_output import OpenTrackUDP
+
 
 MODEL_PATH = "models/face_landmarker.task"
 
 # landmark visualization on the webcam feed.
 DRAW_DEBUG_LANDMARKS = True
 
+# Allows us to send OpenTrack our telemetry data over UDP protocol
+opentrack = OpenTrackUDP()
 
 def main():
 
@@ -529,6 +533,15 @@ def main():
 
 
                 has_pose = True
+
+                opentrack.send_pose(
+                    0.0,
+                    0.0,
+                    0.0,
+                    output_yaw,
+                    output_pitch,
+                    output_roll
+                )
 
 
                 # --------------------------------------------------
