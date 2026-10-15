@@ -6,6 +6,9 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
+# Using numpy to perform matrix operations, which will be used to calculate the head pose
+import numpy as np
+
 # This is a path to the model directly from google, this model tells mediapipe how to detect face landmarks
 # without it the program will not work or know how to detect face landmarks
 MODEL_PATH = "models/face_landmarker.task"
@@ -85,15 +88,98 @@ def main():
             # Get the height and width of the frame, which will be used to convert the normalized 
             # landmark coordinates to pixel coordinates
             height, width, _ = frame.shape
+            
+            chin = landmarks[152]
+            nose_tip = landmarks[4]
+            left_eye_inner_corner = landmarks[154]
+            right_eye_inner_corner = landmarks[463]
+            left_mouth_corner = landmarks[146]
+            right_mouth_corner = landmarks[375]
+            left_cheekbone = landmarks[116]
+            right_cheekbone = landmarks[345]
 
-            # For each landmark, we convert the normalized coordinates (which are between 0 and 1) to pixel coordinates
-            for landmark in landmarks:
-                x = int(landmark.x * width)
-                y = int(landmark.y * height)
+            # Convert normalized coordinates to pixel coordinates
+            chin_x, chin_y = int(chin.x * width), int(chin.y * height)
+            nose_tip_x, nose_tip_y = int(nose_tip.x * width), int(nose_tip.y * height)
+            left_eye_inner_corner_x, left_eye_inner_corner_y = int(left_eye_inner_corner.x * width), int(left_eye_inner_corner.y * height)
+            right_eye_inner_corner_x, right_eye_inner_corner_y = int(right_eye_inner_corner.x * width), int(right_eye_inner_corner.y * height)
+            left_mouth_corner_x, left_mouth_corner_y = int(left_mouth_corner.x * width), int(left_mouth_corner.y * height)
+            right_mouth_corner_x, right_mouth_corner_y = int(right_mouth_corner.x * width), int(right_mouth_corner.y * height)
+            left_cheekbone_x, left_cheekbone_y = int(left_cheekbone.x * width), int(left_cheekbone.y * height)
+            right_cheekbone_x, right_cheekbone_y = int(right_cheekbone.x * width), int(right_cheekbone.y * height)
 
-                # Draw a small green circle at each landmark position on the frame
-                # Frame, Position, Radius, Color (BGR), Thickness (-1 means filled circle)
-                cv2.circle(frame, (x, y), 1, (230, 216, 173), -1)
+            # Draw lines between the landmarks 
+            LINE_COLOUR = (0, 255, 0)  # Green color in BGR
+
+            # line from chin to nose tip
+            cv2.line(frame, (chin_x, chin_y), (nose_tip_x, nose_tip_y), LINE_COLOUR, 2) 
+
+            # line from nose tip to left eye inner corner
+            cv2.line(frame, (nose_tip_x, nose_tip_y), (left_eye_inner_corner_x, left_eye_inner_corner_y), LINE_COLOUR, 2)
+
+            # line from nose tip to right eye inner corner
+            cv2.line(frame, (nose_tip_x, nose_tip_y), (right_eye_inner_corner_x, right_eye_inner_corner_y), LINE_COLOUR, 2)
+
+            # line from nose tip to left cheekbone
+            cv2.line(frame, (nose_tip_x, nose_tip_y), (left_cheekbone_x, left_cheekbone_y), LINE_COLOUR, 2)
+
+            # line from nose tip to right cheekbone
+            cv2.line(frame, (nose_tip_x, nose_tip_y), (right_cheekbone_x, right_cheekbone_y), LINE_COLOUR, 2)
+
+            # line from left mouth corner to right mouth corner
+            cv2.line(frame, (left_mouth_corner_x, left_mouth_corner_y), (right_mouth_corner_x, right_mouth_corner_y), LINE_COLOUR, 2)  
+
+            image_points = [
+                (nose_tip_x, nose_tip_y),  # Nose tip
+                (chin_x, chin_y),  # Chin
+                (left_eye_inner_corner_x, left_eye_inner_corner_y),  # Left eye inner corner
+                (right_eye_inner_corner_x, right_eye_inner_corner_y),  # Right eye inner corner
+                (left_mouth_corner_x, left_mouth_corner_y),  # Left mouth corner
+                (right_mouth_corner_x, right_mouth_corner_y)  # Right mouth corner
+            ]
+
+            model_points = [
+                (0.0, 0.0, 0.0),          # Nose tip
+                (0.0, -63.0, -12.0),      # Chin
+                (-30.0, 28.0, -25.0),     # Left eye inner corner
+                (30.0, 28.0, -25.0),      # Right eye inner corner
+                (-28.0, -28.0, -24.0),    # Left mouth corner
+                (28.0, -28.0, -24.0)      # Right mouth corner
+            ]
+
+            model_points = np.array(model_points, dtype=np.float64)
+            image_points = np.array(image_points, dtype=np.float64)
+
+            distortion_coefficients = np.zeros((4, 1))
+
+            focal_length = width
+
+            center = (width / 2, height / 2)
+
+            camera_matrix = np.array([
+                [focal_length, 0, center[0]],
+                [0, focal_length, center[1]],
+                [0, 0, 1]
+            ], dtype=np.float64)
+
+            success, rotation_vector, translation_vector = cv2.solvePnP(
+                model_points,
+                image_points,
+                camera_matrix,
+                distortion_coefficients
+            )
+
+            rotation_matrix, _ = cv2.Rodrigues(rotation_vector)
+
+            angles, *_ = cv2.RQDecomp3x3(rotation_matrix)
+
+            pitch = angles[0]
+            roll = angles[1]
+            yaw = angles[2]
+
+            print(f"Pitch: {pitch:.2f} | Roll: {roll:.2f} | Yaw: {yaw:.2f}")
+
+
 
 
         # Display the frame with the drawn landmarks in a window named "TrackIt"
