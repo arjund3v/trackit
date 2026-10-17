@@ -53,7 +53,6 @@ def main():
     if not camera.isOpened():
         raise RuntimeError("Could not open webcam")
 
-
     # --------------------------------------------------
     # Center position
     # --------------------------------------------------
@@ -98,7 +97,7 @@ def main():
     # Lower deadzone:
     #   more jitter
     #   less delay
-    deadzone = 1.0
+    deadzone = 1.5
 
 
     # --------------------------------------------------
@@ -111,7 +110,8 @@ def main():
 
         if not success:
             break
-
+        
+        frame = cv2.flip(frame, 1)
 
         # Keeps track of whether we successfully calculated
         # a valid pose on this frame.
@@ -533,13 +533,21 @@ def main():
 
                 has_pose = True
 
+                yaw_gain = 4.0
+                pitch_gain = 2.25
+                roll_gain = 1.5
+
+                game_yaw = output_yaw * yaw_gain
+                game_pitch = output_pitch * pitch_gain
+                game_roll = output_roll * roll_gain
+
                 opentrack.send_pose(
                     0.0,
                     0.0,
                     0.0,
-                    output_yaw,
-                    output_pitch,
-                    output_roll
+                    game_yaw,
+                    game_pitch,
+                    game_roll
                 )
 
 
