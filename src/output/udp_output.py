@@ -24,7 +24,7 @@ class OpenTrackUDP:
             socket.SOCK_DGRAM
         )
 
-    def send_pose(self, x, y, z, yaw, pitch, roll):
+    def send_pose(self, yaw=0.0, pitch=0.0, roll=0.0):
         # Pack the six pose values into a binary packet
         # in the format OpenTrack expects.
         #
@@ -34,12 +34,9 @@ class OpenTrackUDP:
         # d  = each value is a double-precision floating-point number
         #
         # Packet order:
-        # x, y, z, yaw, pitch, roll
+        # yaw, pitch, roll
         packet = struct.pack(
-            "<6d",
-            x,
-            y,
-            z,
+            "<3d",
             yaw,
             pitch,
             roll

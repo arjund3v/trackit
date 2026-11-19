@@ -65,9 +65,6 @@ def main():
     center_pitch = 0.0
     center_yaw = 0.0
     center_roll = 0.0
-    center_x = 0.0
-    center_y = 0.0
-    center_z = 0.0
 
 
     # --------------------------------------------------
@@ -77,9 +74,6 @@ def main():
     smoothed_pitch = 0.0
     smoothed_yaw = 0.0
     smoothed_roll = 0.0
-    smoothed_x = 0.0
-    smoothed_y = 0.0
-    smoothed_z = 0.0
 
     # EMA smoothing factor.
     #
@@ -103,8 +97,7 @@ def main():
     # Lower deadzone:
     #   more jitter
     #   less delay
-    deadzone = 1.5
-    deadzone_translation = 0.3
+    deadzone = 1.75
 
 
     # --------------------------------------------------
@@ -424,7 +417,6 @@ def main():
                 # --------------------------------------------------
 
                 rotation_matrix = transform[:3, :3]
-                translation_vector = transform[:3, 3]
 
 
                 # --------------------------------------------------
@@ -463,8 +455,6 @@ def main():
                     angles[2]
                 )
 
-                true_x, true_y, true_z = translation_vector
-
 
                 # --------------------------------------------------
                 # Calculate pose relative to center
@@ -489,10 +479,6 @@ def main():
                     true_roll - center_roll
                 )
 
-                relative_x = true_x - center_x
-                relative_y = true_y - center_y
-                relative_z = true_z - center_z
-
 
                 # --------------------------------------------------
                 # EMA smoothing
@@ -504,21 +490,6 @@ def main():
                 # Exponential moving average smoothing reduces
                 # this jitter while still allowing the tracker
                 # to respond quickly.
-
-                smoothed_x = (
-                    alpha * relative_x
-                    + (1 - alpha) * smoothed_x
-                )
-
-                smoothed_y = (
-                    alpha * relative_y
-                    + (1 - alpha) * smoothed_y
-                )
-
-                smoothed_z = (
-                    alpha * relative_z
-                    + (1 - alpha) * smoothed_z
-                )
 
                 smoothed_pitch = (
                     alpha * relative_pitch
@@ -538,9 +509,6 @@ def main():
                 output_pitch = apply_deadzone(smoothed_pitch, deadzone)
                 output_yaw = apply_deadzone(smoothed_yaw, deadzone)
                 output_roll = apply_deadzone(smoothed_roll, deadzone)
-                output_x = apply_deadzone(smoothed_x, deadzone_translation)
-                output_y = apply_deadzone(smoothed_y, deadzone_translation)
-                output_z = apply_deadzone(smoothed_z, deadzone_translation)
 
 
                 # --------------------------------------------------
@@ -567,9 +535,6 @@ def main():
                 game_roll = output_roll * roll_gain
 
                 opentrack.send_pose(
-                    output_x,
-                    output_y,
-                    output_z,
                     game_yaw,
                     game_pitch,
                     game_roll
@@ -581,9 +546,6 @@ def main():
                 # --------------------------------------------------
 
                 print(
-                    f"X: {output_x:7.2f} | "
-                    f"Y: {output_y:7.2f} | "
-                    f"Z: {output_z:7.2f} | "
                     f"Pitch: {output_pitch:7.2f} | "
                     f"Yaw: {output_yaw:7.2f} | "
                     f"Roll: {output_roll:7.2f}",
@@ -615,10 +577,6 @@ def main():
         # --------------------------------------------------
 
         if key == ord("c") and has_pose:
-
-            center_x = true_x
-            center_y = true_y
-            center_z = true_z
             center_pitch = true_pitch
             center_yaw = true_yaw
             center_roll = true_roll
@@ -629,9 +587,6 @@ def main():
             # Without this, the smoothed values would still contain
             # information from before the recenter and would slowly
             # drift toward zero instead of immediately becoming zero.
-            smoothed_x = 0.0
-            smoothed_y = 0.0
-            smoothed_z = 0.0
             smoothed_pitch = 0.0
             smoothed_yaw = 0.0
             smoothed_roll = 0.0
